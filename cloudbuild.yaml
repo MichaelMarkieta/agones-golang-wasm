@@ -1,0 +1,18 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Build server
+    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server', 'internal/server/Dockerfile' ]
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Generate manifest
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - sed "s/COMMIT_SHA/${COMMIT_SHA}/g" > deployments/gameserver.yaml
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Apply manifest
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - kubectl apply -f deployments/gameserver.yaml
+images:
+  - 'gcr.io/agones-golang-wasm/server'

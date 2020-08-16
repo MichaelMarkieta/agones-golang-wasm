@@ -1,0 +1,28 @@
+apiVersion: "agones.dev/v1"
+kind: GameServer
+metadata:
+  generateName: "gameserver"
+spec:
+  container: server
+  ports:
+    - name: default
+      portPolicy: Static
+      container: server
+      containerPort: 7654
+      hostPort: 7777
+      protocol: UDP
+  health:
+    disabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  sdkServer:
+    logLevel: Debug
+    grpcPort: 9357
+    httpPort: 9358
+  template:
+    spec:
+      containers:
+        - name: server
+          image:  gcr.io/agones-golang-wasm/server:COMMIT_SHA
+          imagePullPolicy: Always
