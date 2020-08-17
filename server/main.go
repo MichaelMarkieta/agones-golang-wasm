@@ -3,21 +3,14 @@ package main
 import (
 	sdk "agones.dev/agones/sdks/go"
 	"flag"
+	"fmt"
 	"log"
-	"net"
-	"os"
+	"net/http"
 )
 
-// main starts a UDP server that received 1024 byte sized packets at at time
-// converts the bytes to a string, and logs the output
 func main() {
 	go doSignal()
-
-	port := flag.String("port", "7654", "The port to listen to udp traffic on")
-	flag.Parse()
-	if ep := os.Getenv("PORT"); ep != "" {
-		port = &ep
-	}
+	port := flag.String("port", "7654", "The port to listen to http traffic on")
 
 	log.Print("Creating SDK instance")
 	s, err := sdk.NewSDK()
@@ -29,12 +22,25 @@ func main() {
 	stop := make(chan struct{})
 	go doHealth(s, stop)
 
-	log.Printf("Starting UDP server, listening on port %s", *port)
-	conn, err := net.ListenPacket("udp", ":"+*port)
-	if err != nil {
-		log.Fatalf("Could not start udp server: %v", err)
-	}
-	defer conn.Close() // nolint: errcheck
+	log.Print("Starting WS Hub")
+	hub := newHub()
+	go hub.run()
 	ready(s)
-	gameloop(conn, stop, s)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+		client.hub.register <- client
+
+		go client.writePump()
+		go client.readPump()
+	})
+
+	log.Print("Starting HTTP Server")
+	addr := flag.String("addr", fmt.Sprintf("0.0.0.0:%s", port), "http service address")
+	log.Fatal(http.ListenAndServe(*addr, nil))
 }
