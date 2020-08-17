@@ -1,7 +1,7 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: Build server
-    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server', 'internal/server/Dockerfile' ]
+    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server', 'internal/server' ]
   - name: 'gcr.io/cloud-builders/gcloud'
     id: Generate manifest
     entrypoint: /bin/sh
@@ -12,7 +12,7 @@ steps:
     id: Apply manifest
     entrypoint: /bin/sh
     args:
-      - '-c'
+      - '-c'git a
       - kubectl apply -f deployments/gameserver.yaml
 images:
   - 'gcr.io/agones-golang-wasm/server'
