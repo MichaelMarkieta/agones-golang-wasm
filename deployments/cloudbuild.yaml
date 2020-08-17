@@ -1,12 +1,10 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: Build
-    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server', 'internal/server' ]
+    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server:$COMMIT_SHA', 'internal/server' ]
   - name: 'gcr.io/cloud-builders/docker'
     id: Push
-    args:
-      - 'push'
-      - 'gcr.io/agones-golang-wasm/hello-cloudbuild:$COMMIT_SHA'
+    args: [ 'push', 'gcr.io/agones-golang-wasm/server:$COMMIT_SHA' ]
   - name: 'gcr.io/cloud-builders/gcloud'
     id: SED
     entrypoint: /bin/sh
