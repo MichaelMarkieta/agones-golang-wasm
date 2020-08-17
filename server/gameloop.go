@@ -80,23 +80,6 @@ func gameloop(conn net.PacketConn, stop chan struct{}, s *sdk.SDK) {
 				continue
 			}
 
-		case "PLAYER_CAPACITY":
-			switch len(parts) {
-			case 1:
-				respond(conn, sender, getPlayerCapacity(s))
-				continue
-			case 2:
-				if cp, err := strconv.Atoi(parts[1]); err != nil {
-					respond(conn, sender, fmt.Sprintf("ERROR: %s\n", err))
-					continue
-				} else {
-					setPlayerCapacity(s, int64(cp))
-				}
-			default:
-				respond(conn, sender, "ERROR: Invalid PLAYER_CAPACITY, should have 0 or 1 arguments\n")
-				continue
-			}
-
 		case "PLAYER_CONNECT":
 			if len(parts) < 2 {
 				respond(conn, sender, "ERROR: Invalid PLAYER_CONNECT, should have 1 arguments\n")
