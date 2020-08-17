@@ -12,7 +12,7 @@ steps:
     id: Apply manifest
     entrypoint: /bin/sh
     args:
-      - '-c'git a
+      - '-c'
       - kubectl apply -f deployments/gameserver.yaml
 images:
   - 'gcr.io/agones-golang-wasm/server'
