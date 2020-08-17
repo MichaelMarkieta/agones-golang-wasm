@@ -12,10 +12,12 @@ steps:
       - '-c'
       - |
         sed -i "s/COMMIT_SHA/${COMMIT_SHA}/g" deployments/gameserver.yaml
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Apply
-    entrypoint: /bin/sh
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: Deploy
     args:
-      - '-c'
-      - |
-        kubectl apply -f deployments/gameserver.yaml
+      - 'apply'
+      - '-f'
+      - 'deployments/gameserver.yaml'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=northamerica-northeast1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=agones'
