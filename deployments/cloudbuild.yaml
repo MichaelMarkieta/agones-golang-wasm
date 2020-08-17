@@ -1,7 +1,7 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: Build
-    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server:$COMMIT_SHA', 'internal/server' ]
+    args: [ 'build', '-t', 'gcr.io/agones-golang-wasm/server:$COMMIT_SHA', 'server' ]
   - name: 'gcr.io/cloud-builders/docker'
     id: Push
     args: [ 'push', 'gcr.io/agones-golang-wasm/server:$COMMIT_SHA' ]
