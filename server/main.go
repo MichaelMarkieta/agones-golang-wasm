@@ -2,15 +2,12 @@ package main
 
 import (
 	sdk "agones.dev/agones/sdks/go"
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
 )
 
 func main() {
 	go doSignal()
-	port := flag.String("port", "7654", "The port to listen to http traffic on")
 
 	log.Print("Creating SDK instance")
 	s, err := sdk.NewSDK()
@@ -41,6 +38,5 @@ func main() {
 	})
 
 	log.Print("Starting HTTP Server")
-	addr := fmt.Sprintf("0.0.0.0:%d", port)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(":7654", nil))
 }
