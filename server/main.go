@@ -41,6 +41,6 @@ func main() {
 	})
 
 	log.Print("Starting HTTP Server")
-	addr := fmt.Sprintf("0.0.0.0:%s", port)
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
