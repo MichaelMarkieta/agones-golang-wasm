@@ -10,7 +10,7 @@ spec:
       container: server
       containerPort: 7654
       hostPort: 7777
-      protocol: UDP
+      protocol: TCP
   health:
     disabled: false
     initialDelaySeconds: 5
