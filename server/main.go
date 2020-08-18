@@ -25,6 +25,7 @@ func main() {
 	ready(s)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Print("WS request made")
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
