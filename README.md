@@ -14,7 +14,8 @@ gcloud container clusters create $CLUSTER_NAME \
   --min-nodes=1 \
   --max-nodes=3 \
   --no-enable-autoupgrade \
-  --machine-type=e2-standard-2
+  --machine-type=e2-standard-2 \
+  --quiet
 
 gcloud container node-pools create agones-system \
   --cluster=$CLUSTER_NAME \
@@ -23,7 +24,8 @@ gcloud container node-pools create agones-system \
   --node-labels agones.dev/agones-system=true \
   --enable-autoscaling \
   --min-nodes=1 \
-  --max-nodes=3
+  --max-nodes=3 \
+  --quiet
 
 gcloud container node-pools create agones-metrics \
   --cluster=$CLUSTER_NAME \
@@ -32,7 +34,8 @@ gcloud container node-pools create agones-metrics \
   --node-labels agones.dev/agones-metrics=true \
   --enable-autoscaling \
   --min-nodes=1 \
-  --max-nodes=3
+  --max-nodes=3 \
+  --quiet
 
 gcloud config set container/cluster $CLUSTER_NAME
 gcloud container clusters get-credentials $CLUSTER_NAME
@@ -40,7 +43,8 @@ gcloud container clusters get-credentials $CLUSTER_NAME
 gcloud compute firewall-rules create game-server-firewall \
   --allow udp:7000-8000 \
   --target-tags game-server \
-  --description "Firewall to allow game server udp traffic"
+  --description "Firewall to allow game server udp traffic" \
+  --quiet
 
 helm repo add agones https://agones.dev/chart/stable
 helm install agones --namespace agones-system --create-namespace agones/agones
