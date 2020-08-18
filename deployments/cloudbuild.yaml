@@ -14,7 +14,6 @@ steps:
         sed -i "s/COMMIT_SHA/${COMMIT_SHA}/g" deployments/gameserver.yaml
   - name: 'gcr.io/cloud-builders/kubectl'
     id: Delete existing gameserver
-    entrypoint: /bin/sh
     args:
       - 'delete'
       - 'gs'
