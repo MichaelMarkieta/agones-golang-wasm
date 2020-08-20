@@ -5,4 +5,5 @@ steps:
     args:
       - '-c'
       - |
-        gsutil cp -r client gs://agones-golang-wasm
+        cd client
+        gsutil cp -r . gs://agones-golang-wasm
