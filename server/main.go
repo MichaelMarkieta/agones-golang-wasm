@@ -40,5 +40,5 @@ func main() {
 	})
 
 	log.Print("Starting HTTP Server")
-	log.Fatal(http.ListenAndServeTLS(":7654", "/var/run/autocert.step.sm/site.crt", "/var/run/autocert.step.sm/site.key", nil))
+	log.Fatal(http.ListenAndServe(":7654", nil))
 }
