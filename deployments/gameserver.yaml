@@ -21,6 +21,9 @@ spec:
     grpcPort: 9357
     httpPort: 9358
   template:
+    metadata:
+      annotations:
+        autocert.step.sm/name: gameserver.michaelmarkieta.com
     spec:
       containers:
         - name: server

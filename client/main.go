@@ -25,13 +25,14 @@ const (
 	spriteSpeed   = 5
 	spriteWidth   = 284
 	spriteHeight  = 285
+	spriteCountY  = 6
 	bottomBound = screenHeight-(spriteHeight*spriteScaling)
 	rightBound = screenWidth-(spriteWidth*spriteScaling)
 )
 
 var (
 	spritesheet *ebiten.Image
-	playerYellow = image.Rectangle{image.Point{0,0},image.Point{284,285}}
+	spritesheetMap = map[int]*image.Rectangle{}
 	localPlayer string
 )
 
@@ -45,7 +46,7 @@ type Game struct {
 type Player struct {
 	x float64
 	y float64
-	sprite image.Rectangle
+	sprite int
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
@@ -89,7 +90,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if keypressed {
-		err := wsjson.Write(g.ctx, g.wsconn, fmt.Sprintf("POSITION %s %f %f", localPlayer, g.players[localPlayer].x, g.players[localPlayer].y))
+		err := wsjson.Write(g.ctx, g.wsconn, fmt.Sprintf("POSITION %s %f %f %d", localPlayer, g.players[localPlayer].x, g.players[localPlayer].y, g.players[localPlayer].sprite))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -106,7 +107,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(spriteScaling, spriteScaling)
 		op.GeoM.Translate(p.x, p.y)
-		err2 := screen.DrawImage(spritesheet.SubImage(p.sprite).(*ebiten.Image), op); if err2 != nil {
+		err2 := screen.DrawImage(spritesheet.SubImage(*spritesheetMap[p.sprite]).(*ebiten.Image), op); if err2 != nil {
 			log.Fatalf("Cannot draw sprite: %s", err2)
 		}
 	}
@@ -118,10 +119,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func newPlayer() *Player {
 	p := &Player{}
-	rand.Seed(time.Now().UnixNano())
 	p.x = float64(rand.Intn(screenWidth- spriteWidth))
 	p.y = float64(rand.Intn(screenHeight- spriteHeight))
-	p.sprite = playerYellow
+	p.sprite = rand.Intn(spriteCountY)+1
 	return p
 }
 
@@ -133,6 +133,8 @@ func isNewPlayer(g *Game, id string) bool {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	// SPRITESHEET SETUP
 	f, err := ebitenutil.OpenFile("round_nodetails_outline.png")
 	img, _, err := image.Decode(f)
@@ -141,10 +143,16 @@ func main() {
 	}
 	spritesheet, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	spritesheetMap[1] = &image.Rectangle{image.Point{0,((1*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(1*spriteHeight)+1}}
+	spritesheetMap[2] = &image.Rectangle{image.Point{0,((2*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(2*spriteHeight)+1}}
+	spritesheetMap[3] = &image.Rectangle{image.Point{0,((3*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(3*spriteHeight)+1}}
+	spritesheetMap[4] = &image.Rectangle{image.Point{0,((4*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(4*spriteHeight)+1}}
+	spritesheetMap[5] = &image.Rectangle{image.Point{0,((5*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(5*spriteHeight)+1}}
+	spritesheetMap[6] = &image.Rectangle{image.Point{0,((6*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(6*spriteHeight)+1}}
+	spritesheetMap[7] = &image.Rectangle{image.Point{0,((7*spriteHeight)+1)-spriteHeight},image.Point{spriteWidth,(7*spriteHeight)+1}}
 
 	// GAME SETUP
 	g := &Game{}
-	rand.Seed(time.Now().UnixNano())
 	localPlayer = uuid.New().String()
 	p := newPlayer()
 	g.players = make(map[string]*Player)
@@ -153,7 +161,7 @@ func main() {
 	// WEBSOCKET SETUP
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	wsconn, _, err := websocket.Dial(ctx, "ws://34.95.7.42:7777", nil)
+	wsconn, _, err := websocket.Dial(ctx, "wss://34.95.7.42:7777", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,15 +180,16 @@ func main() {
 			case "POSITION":
 				x, err := strconv.ParseFloat(parts[2], 64); if err != nil {log.Fatal(err)}
 				y, err := strconv.ParseFloat(parts[3], 64); if err != nil {log.Fatal(err)}
+				sprite, err := strconv.Atoi(parts[4]); if err != nil {log.Fatal(err)}
 				if isNewPlayer(g, parts[1]) {
 					log.Printf("Add remote player")
-					g.players[parts[1]] = &Player{x: x, y: y, sprite: playerYellow}
+					g.players[parts[1]] = &Player{x: x, y: y, sprite: sprite}
 				}
 				if parts[1] != localPlayer {
 					log.Printf("Move remote player")
 					g.players[parts[1]].x = x
 					g.players[parts[1]].y = y
-					g.players[parts[1]].sprite = playerYellow
+					g.players[parts[1]].sprite = sprite
 				}
 			case "PLAYER_LEAVE":
 				log.Printf("Remove player [PLAYER_LEAVE UUID]")
@@ -191,6 +200,10 @@ func main() {
 	// RUN GAME
 	g.wsconn = wsconn
 	g.ctx = ctx
+	err4 := wsjson.Write(g.ctx, g.wsconn, fmt.Sprintf("POSITION %s %f %f %d", localPlayer, g.players[localPlayer].x, g.players[localPlayer].y, g.players[localPlayer].sprite))
+	if err4 != nil {
+		log.Fatal(err4)
+	}
 	ebiten.SetRunnableOnUnfocused(true)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
