@@ -161,7 +161,7 @@ func main() {
 	// WEBSOCKET SETUP
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	wsconn, _, err := websocket.Dial(ctx, "wss://34.95.7.42:7777", nil)
+	wsconn, _, err := websocket.Dial(ctx, "wss://35.203.44.130:7777", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
