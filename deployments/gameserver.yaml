@@ -13,8 +13,8 @@ spec:
       protocol: TCP
   health:
     disabled: false
-    initialDelaySeconds: 5
-    periodSeconds: 5
+    initialDelaySeconds: 11
+    periodSeconds: 11
     failureThreshold: 3
   sdkServer:
     logLevel: Debug

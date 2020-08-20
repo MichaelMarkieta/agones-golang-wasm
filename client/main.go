@@ -13,14 +13,14 @@ import (
 	"math/rand"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
+	"strconv"
+	"strings"
 	"time"
 )
 
 const (
 	screenWidth   = 1024
 	screenHeight  = 1024
-	frameOX       = 0
-	frameOY       = 6
 	spriteScaling = 0.25
 	spriteSpeed   = 5
 	spriteWidth   = 284
@@ -32,76 +32,73 @@ const (
 var (
 	spritesheet *ebiten.Image
 	playerYellow = image.Rectangle{image.Point{0,0},image.Point{284,285}}
+	localPlayer string
 )
 
 type Game struct {
 	spritesheet *ebiten.Image
-	pressed []ebiten.Key
-	players []*Player
-	c *websocket.Conn
-	ctx context.Context
+	players     map[string]*Player
+	wsconn      *websocket.Conn
+	ctx         context.Context
 }
 
 type Player struct {
-	id string
 	x float64
 	y float64
 	sprite image.Rectangle
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
-	g.pressed = nil
+	keypressed := false
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
-			g.pressed = append(g.pressed, k)
-
+			keypressed = true
 			// Moving Down
-			if ebiten.Key.String(k) == "Down" && g.players[0].y <= bottomBound {
-				if g.players[0].y + 1 * spriteSpeed > bottomBound {
-					g.players[0].y = bottomBound
+			if ebiten.Key.String(k) == "Down" && g.players[localPlayer].y <= bottomBound {
+				if g.players[localPlayer].y + 1 * spriteSpeed > bottomBound {
+					g.players[localPlayer].y = bottomBound
 				} else {
-					g.players[0].y += 1 * spriteSpeed
+					g.players[localPlayer].y += 1 * spriteSpeed
 				}
 			}
-
 			// Moving Up
-			if ebiten.Key.String(k) == "Up" && g.players[0].y >= 0 {
-				if g.players[0].y - 1 * spriteSpeed < 0 {
-					g.players[0].y = 0
+			if ebiten.Key.String(k) == "Up" && g.players[localPlayer].y >= 0 {
+				if g.players[localPlayer].y - 1 * spriteSpeed < 0 {
+					g.players[localPlayer].y = 0
 				} else {
-					g.players[0].y -= 1 * spriteSpeed
+					g.players[localPlayer].y -= 1 * spriteSpeed
 				}
 			}
-
 			// Moving Left
-			if ebiten.Key.String(k) == "Left" && g.players[0].x > 0 {
-				if g.players[0].x - 1 * spriteSpeed < 0 {
-					g.players[0].x = 0
+			if ebiten.Key.String(k) == "Left" && g.players[localPlayer].x > 0 {
+				if g.players[localPlayer].x - 1 * spriteSpeed < 0 {
+					g.players[localPlayer].x = 0
 				} else {
-					g.players[0].x -= 1 * spriteSpeed
+					g.players[localPlayer].x -= 1 * spriteSpeed
 				}
 			}
-
 			// Moving Right
-			if ebiten.Key.String(k) == "Right" && g.players[0].x <= rightBound {
-				if g.players[0].x + 1 * spriteSpeed > rightBound {
-					g.players[0].x = rightBound
+			if ebiten.Key.String(k) == "Right" && g.players[localPlayer].x <= rightBound {
+				if g.players[localPlayer].x + 1 * spriteSpeed > rightBound {
+					g.players[localPlayer].x = rightBound
 				} else {
-					g.players[0].x += 1 * spriteSpeed
+					g.players[localPlayer].x += 1 * spriteSpeed
 				}
 			}
 		}
 	}
 
-	err := wsjson.Write(g.ctx, g.c, fmt.Sprintf("%s %f %f", g.players[0].id, g.players[0].x, g.players[0].y))
-	if err != nil {
-		log.Fatal(err)
+	if keypressed {
+		err := wsjson.Write(g.ctx, g.wsconn, fmt.Sprintf("POSITION %s %f %f", localPlayer, g.players[localPlayer].x, g.players[localPlayer].y))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	err1 := screen.Fill(color.NRGBA{0xff, 0xff, 0xff, 0xff}); if err1 != nil {
+	err1 := screen.Fill(color.NRGBA{0xf0, 0xf0, 0xf0, 0xff}); if err1 != nil {
 		log.Fatalf("Cannot fill screen: %s", err1)
 	}
 
@@ -120,25 +117,22 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func newPlayer() *Player {
-	rand.Seed(time.Now().UnixNano())
 	p := &Player{}
-	p.id = uuid.New().String()
+	rand.Seed(time.Now().UnixNano())
 	p.x = float64(rand.Intn(screenWidth- spriteWidth))
 	p.y = float64(rand.Intn(screenHeight- spriteHeight))
 	p.sprite = playerYellow
 	return p
 }
 
-func main() {
-	// WEBSOCKET SETUP
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	c, _, err := websocket.Dial(ctx, "ws://34.95.7.42:7777", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer c.Close(websocket.StatusInternalError, "")
+func isNewPlayer(g *Game, id string) bool {
+	log.Printf("Checking if %s is new", id)
+	exists := false
+	_, exists = g.players[id]
+	return !exists
+}
 
+func main() {
 	// SPRITESHEET SETUP
 	f, err := ebitenutil.OpenFile("round_nodetails_outline.png")
 	img, _, err := image.Decode(f)
@@ -148,19 +142,56 @@ func main() {
 	spritesheet, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 
-	// GLOBAL VARIABLES SETUP
+	// GAME SETUP
 	g := &Game{}
+	rand.Seed(time.Now().UnixNano())
+	localPlayer = uuid.New().String()
 	p := newPlayer()
-	g.players = append(g.players, p)
-	g.c = c
-	g.ctx = ctx
+	g.players = make(map[string]*Player)
+	g.players[localPlayer] = p
 
-	err3 := wsjson.Write(g.ctx, g.c, fmt.Sprintf("%s %f %f", g.players[0].id, g.players[0].x, g.players[0].y))
-	if err3 != nil {
-		log.Fatal(err3)
+	// WEBSOCKET SETUP
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wsconn, _, err := websocket.Dial(ctx, "ws://34.95.7.42:7777", nil)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer wsconn.Close(websocket.StatusInternalError, "")
+
+	go func() {
+		for {
+			_, message, err := wsconn.Read(ctx);
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Printf("Message receieved: %s", message)
+			parts := strings.Split(strings.Replace(strings.Trim(string(message), "\""), "\"\n\"", " ", -1), " ")
+			log.Print(parts)
+			switch parts[0] {
+			case "POSITION":
+				x, err := strconv.ParseFloat(parts[2], 64); if err != nil {log.Fatal(err)}
+				y, err := strconv.ParseFloat(parts[3], 64); if err != nil {log.Fatal(err)}
+				if isNewPlayer(g, parts[1]) {
+					log.Printf("Add remote player")
+					g.players[parts[1]] = &Player{x: x, y: y, sprite: playerYellow}
+				}
+				if parts[1] != localPlayer {
+					log.Printf("Move remote player")
+					g.players[parts[1]].x = x
+					g.players[parts[1]].y = y
+					g.players[parts[1]].sprite = playerYellow
+				}
+			case "PLAYER_LEAVE":
+				log.Printf("Remove player [PLAYER_LEAVE UUID]")
+			}
+		}
+	}()
 
 	// RUN GAME
+	g.wsconn = wsconn
+	g.ctx = ctx
+	ebiten.SetRunnableOnUnfocused(true)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

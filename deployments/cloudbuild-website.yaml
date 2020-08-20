@@ -1,0 +1,8 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Deploy website to GCS
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        gcs cp -r client gs://agones-golang-wasm

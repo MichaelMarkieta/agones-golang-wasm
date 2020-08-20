@@ -210,7 +210,7 @@ func getPlayerCount(s *sdk.SDK) string {
 
 // doHealth sends the regular Health Pings
 func doHealth(sdk *sdk.SDK, stop <-chan struct{}) {
-	tick := time.Tick(2 * time.Second)
+	tick := time.Tick(10 * time.Second)
 	for {
 		err := sdk.Health()
 		if err != nil {

@@ -43,8 +43,8 @@ func (h *Hub) run() {
 			for client := range h.clients {
 				select {
 				case client.send <- message:
-					log.Printf("Broadcast to client %s: %s", client.conn.RemoteAddr(), message)
 				default:
+					log.Printf("Broadcast to client %s: %s", client.conn.RemoteAddr(), message)
 					close(client.send)
 					delete(h.clients, client)
 				}
