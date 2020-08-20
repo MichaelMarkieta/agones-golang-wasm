@@ -7,3 +7,4 @@ steps:
       - |
         cd client
         gsutil -h "Cache-Control:no-cache,max-age=0" cp -r . gs://agones-golang-wasm
+        gsutil web set -m index.html gs://agones-golang-wasm
