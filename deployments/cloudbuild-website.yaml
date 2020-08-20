@@ -6,4 +6,4 @@ steps:
       - '-c'
       - |
         cd client
-        gsutil cp -r . gs://agones-golang-wasm
+        gsutil -h "Cache-Control:no-cache,max-age=0" cp -r . gs://agones-golang-wasm
